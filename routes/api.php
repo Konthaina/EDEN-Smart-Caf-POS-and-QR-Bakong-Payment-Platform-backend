@@ -141,3 +141,11 @@ Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
     Route::put('/{notification}/read', [NotificationController::class, 'markAsRead']);
     Route::delete('/{notification}', [NotificationController::class, 'destroy']);
 });
+
+
+use Illuminate\Http\Request;
+
+Route::get('/ping', function () {
+    return response()->json(['message' => 'pong']);
+});
+
