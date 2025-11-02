@@ -9,7 +9,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 
-
 class PaymentController extends Controller
 {
     // 🔍 List all payments (for admin)
@@ -30,11 +29,14 @@ class PaymentController extends Controller
         Log::info('📥 Incoming Payment Request', $request->all());
 
         $validated = $request->validate([
-            'order_id' => 'required|exists:orders,id',
-            'method' => 'required|in:cash,static_qr,khqr,aba,card',
-            'amount' => 'required|numeric|min:0.01',
-            'transaction_id' => 'nullable|string',
-            'note' => 'nullable|string'
+            'order_id'      => 'required|exists:orders,id',
+            'method'        => 'required|in:cash,static_qr,khqr,aba,card',
+            'amount'        => 'required|numeric|min:0.01',
+            'tax_amount'    => 'nullable|numeric|min:0',
+            'exchange_rate' => 'nullable|numeric|min:0',
+            'total_khr'     => 'nullable|numeric|min:0',
+            'transaction_id'=> 'nullable|string',
+            'note'          => 'nullable|string'
         ]);
 
         try {
@@ -46,12 +48,15 @@ class PaymentController extends Controller
             }
 
             $payment = Payment::create([
-                'order_id' => $order->id,
-                'method' => $validated['method'],
-                'amount' => $validated['amount'],
-                'transaction_id' => $validated['transaction_id'] ?? Str::uuid(),
-                'status' => 'approved',
-                'confirmed_at' => now()
+                'order_id'      => $order->id,
+                'method'        => $validated['method'],
+                'amount'        => $validated['amount'],
+                'tax_amount'    => $validated['tax_amount'] ?? 0,
+                'exchange_rate' => $validated['exchange_rate'] ?? null,
+                'total_khr'     => $validated['total_khr'] ?? null,
+                'transaction_id'=> $validated['transaction_id'] ?? Str::uuid(),
+                'status'        => 'approved',
+                'confirmed_at'  => now()
             ]);
 
             Log::info('✅ Payment saved', $payment->toArray());
@@ -81,7 +86,6 @@ class PaymentController extends Controller
             return response()->json(['message' => 'Payment failed', 'error' => $e->getMessage()], 500);
         }
     }
-
 
     // ✍️ Log extra info for payment
     public function log(Request $request, Payment $payment)

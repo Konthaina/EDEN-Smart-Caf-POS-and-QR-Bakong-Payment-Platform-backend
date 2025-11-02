@@ -9,15 +9,25 @@ class Ingredient extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'unit'];
+    // Add low_alert_qty to allow mass-assignment
+    protected $fillable = [
+        'name',
+        'unit',
+        'low_alert_qty',
+    ];
 
-    public function stock()
+    // Cast as decimal for consistent numeric handling
+    protected $casts = [
+        'low_alert_qty' => 'decimal:3',
+    ];
+
+    public function stocks()
     {
-        return $this->hasOne(Stock::class);
+        return $this->hasMany(\App\Models\Stock::class, 'ingredient_id', 'id');
     }
+
     public function recipes()
     {
         return $this->hasMany(Recipe::class);
     }
 }
-

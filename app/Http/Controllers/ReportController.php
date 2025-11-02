@@ -164,4 +164,43 @@ class ReportController extends Controller
 
         return response()->json($data);
     }
+    // In ReportController.php
+
+    public function topItemsByFilter(Request $request)
+    {
+        $filter = $request->query('filter', 'month');
+        $query = OrderItem::select('menu_items.name', DB::raw('SUM(order_items.quantity) as total_orders'))
+            ->join('menu_items', 'order_items.menu_item_id', '=', 'menu_items.id');
+
+        // Filter by date range
+        switch ($filter) {
+            case 'today':
+                $query->whereDate('order_items.created_at', now());
+                break;
+            case 'week':
+                $query->whereBetween('order_items.created_at', [now()->startOfWeek(), now()]);
+                break;
+            case 'month':
+                $query->whereMonth('order_items.created_at', now()->month)
+                    ->whereYear('order_items.created_at', now()->year);
+                break;
+            case 'year':
+                $query->whereYear('order_items.created_at', now()->year);
+                break;
+            default:
+                // Default to current month
+                $query->whereMonth('order_items.created_at', now()->month)
+                    ->whereYear('order_items.created_at', now()->year);
+                break;
+        }
+
+        $topItems = $query
+            ->groupBy('menu_items.name')
+            ->orderByDesc('total_orders')
+            ->limit(10)
+            ->get();
+
+        return response()->json($topItems);
+    }
+
 }

@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
 
-
 class ProfileController extends Controller
 {
     /**
@@ -16,12 +15,43 @@ class ProfileController extends Controller
     {
         $user = $request->user()->load('profile');
 
-        // Attach full avatar URL if exists
-        $user->profile->avatar_url = $user->profile->avatar
-            ? asset('storage/' . $user->profile->avatar)
-            : asset('images/default-avatar.png'); // fallback if needed
+        // If user has no profile, return safe defaults
+        if (!$user->profile) {
+            return response()->json([
+                'id'         => $user->id,
+                'name'       => $user->name,
+                'email'      => $user->email,
+                'role'       => $user->role->name ?? $user->role,
+                'profile'    => [
+                    'phone'      => null,
+                    'gender'     => null,
+                    'birthdate'  => null,
+                    'address'    => null,
+                    'avatar_url' => asset('images/default-avatar.png'),
+                ],
+                'created_at' => $user->created_at,
+            ]);
+        }
 
-        return response()->json($user);
+        // If user has a profile, build avatar URL
+        $avatar_url = $user->profile->avatar
+            ? asset('storage/' . $user->profile->avatar)
+            : asset('images/default-avatar.png');
+
+        return response()->json([
+            'id'         => $user->id,
+            'name'       => $user->name,
+            'email'      => $user->email,
+            'role'       => $user->role->name ?? $user->role,
+            'profile'    => [
+                'phone'      => $user->profile->phone,
+                'gender'     => $user->profile->gender,
+                'birthdate'  => $user->profile->birthdate,
+                'address'    => $user->profile->address,
+                'avatar_url' => $avatar_url,
+            ],
+            'created_at' => $user->created_at,
+        ]);
     }
 
     /**
@@ -32,11 +62,11 @@ class ProfileController extends Controller
         $user = $request->user();
 
         $data = $request->validate([
-            'name' => 'nullable|string|max:255',
-            'phone' => 'nullable|string|max:20',
-            'gender' => 'nullable|string|in:male,female,other',
+            'name'      => 'nullable|string|max:255',
+            'phone'     => 'nullable|string|max:20',
+            'gender'    => 'nullable|string|in:male,female,other',
             'birthdate' => 'nullable|date',
-            'address' => 'nullable|string|max:255',
+            'address'   => 'nullable|string|max:255',
         ]);
 
         // Update users table
@@ -48,16 +78,16 @@ class ProfileController extends Controller
         $user->profile()->updateOrCreate(
             ['user_id' => $user->id],
             [
-                'phone' => $data['phone'] ?? '',
-                'gender' => $data['gender'] ?? '',
+                'phone'     => $data['phone']     ?? '',
+                'gender'    => $data['gender']    ?? '',
                 'birthdate' => $data['birthdate'] ?? null,
-                'address' => $data['address'] ?? '',
+                'address'   => $data['address']   ?? '',
             ]
         );
 
         return response()->json([
             'message' => 'Profile updated successfully.',
-            'user' => $user->load('profile'),
+            'user'    => $user->load('profile'),
         ]);
     }
 
@@ -85,8 +115,8 @@ class ProfileController extends Controller
         $profile->save();
 
         return response()->json([
-            'message' => 'Avatar updated successfully.',
-            'avatar' => $path,
+            'message'    => 'Avatar updated successfully.',
+            'avatar'     => $path,
             'avatar_url' => asset('storage/' . $path),
         ]);
     }
@@ -98,7 +128,7 @@ class ProfileController extends Controller
     {
         $request->validate([
             'current_password' => 'required',
-            'new_password' => 'required|min:6|confirmed',
+            'new_password'     => 'required|min:6|confirmed',
         ]);
 
         $user = auth()->user();
@@ -111,5 +141,4 @@ class ProfileController extends Controller
 
         return response()->json(['message' => 'Password updated successfully']);
     }
-
 }

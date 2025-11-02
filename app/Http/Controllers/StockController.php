@@ -3,24 +3,32 @@
 namespace App\Http\Controllers;
 
 use App\Models\Stock;
-use App\Models\Ingredient;
 use Illuminate\Http\Request;
 
 class StockController extends Controller
 {
+    /**
+     * List stock with ingredient, excluding orphans
+     * (extra safety even if bad data slips in).
+     */
     public function index()
     {
-        return Stock::with('ingredient')->get();
+        return Stock::with('ingredient')
+            ->whereHas('ingredient')
+            ->get();
     }
 
-    // Accepts either one item or many items
+    /**
+     * Create/update stock.
+     * Supports single item or batch via items[].
+     */
     public function store(Request $request)
     {
         if ($request->has('items')) {
             $data = $request->validate([
                 'items' => 'required|array|min:1',
                 'items.*.ingredient_id' => 'required|exists:ingredients,id',
-                'items.*.quantity' => 'required|numeric|min:0',
+                'items.*.quantity'      => 'required|numeric|min:0',
             ]);
 
             $result = [];
@@ -28,7 +36,7 @@ class StockController extends Controller
             foreach ($data['items'] as $item) {
                 $stock = Stock::updateOrCreate(
                     ['ingredient_id' => $item['ingredient_id']],
-                    ['quantity' => $item['quantity']]
+                    ['quantity'      => $item['quantity']]
                 );
 
                 $result[] = $stock->load('ingredient');
@@ -36,26 +44,30 @@ class StockController extends Controller
 
             return response()->json([
                 'message' => 'Stock batch updated successfully.',
-                'stocks' => $result
-            ]);
-        } else {
-            $data = $request->validate([
-                'ingredient_id' => 'required|exists:ingredients,id',
-                'quantity' => 'required|numeric|min:0',
-            ]);
-
-            $stock = Stock::updateOrCreate(
-                ['ingredient_id' => $data['ingredient_id']],
-                ['quantity' => $data['quantity']]
-            );
-
-            return response()->json([
-                'message' => 'Stock updated.',
-                'stock' => $stock->load('ingredient')
+                'stocks'  => $result,
             ]);
         }
+
+        // Single item path
+        $data = $request->validate([
+            'ingredient_id' => 'required|exists:ingredients,id',
+            'quantity'      => 'required|numeric|min:0',
+        ]);
+
+        $stock = Stock::updateOrCreate(
+            ['ingredient_id' => $data['ingredient_id']],
+            ['quantity'      => $data['quantity']]
+        );
+
+        return response()->json([
+            'message' => 'Stock updated.',
+            'stock'   => $stock->load('ingredient'),
+        ]);
     }
 
+    /**
+     * Show a single stock row with its ingredient.
+     */
     public function show(Stock $stock)
     {
         return $stock->load('ingredient');

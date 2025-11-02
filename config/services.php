@@ -13,6 +13,13 @@ return [
     | a conventional file to locate the various service credentials.
     |
     */
+    // config/services.php
+    // ...
+    'bakong' => [
+        'merchant_id' => env('BAKONG_MERCHANT_ID'), // <-- env fallback
+        // other bakong config if needed...
+    ],
+
 
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),

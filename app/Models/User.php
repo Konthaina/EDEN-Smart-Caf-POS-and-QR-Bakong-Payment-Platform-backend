@@ -2,15 +2,19 @@
 
 namespace App\Models;
 
-use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
+    /**
+     * Mass assignable attributes.
+     */
     protected $fillable = [
         'name',
         'email',
@@ -18,32 +22,41 @@ class User extends Authenticatable
         'role_id',
     ];
 
+    /**
+     * Hidden attributes for arrays/JSON.
+     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
+    /**
+     * Attribute casting.
+     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'          => 'hashed',
         ];
     }
 
-    /**
-     * Relationship: User belongs to a Role
-     */
+    // ── Relationships ────────────────────────────────────────────────────────
+
     public function role()
     {
         return $this->belongsTo(Role::class);
     }
 
-    /**
-     * Relationship: User has one Profile
-     */
     public function profile()
     {
         return $this->hasOne(Profile::class);
     }
+
+    public function table()
+    {
+        return $this->hasOne(Table::class);
+    }
+    // OTP-only: remove the reset-link override.
+    // public function sendPasswordResetNotification($token) { ... }  ← deleted
 }

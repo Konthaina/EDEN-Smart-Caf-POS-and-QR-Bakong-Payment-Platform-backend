@@ -11,21 +11,24 @@ class Recipe extends Model
 
     protected $fillable = [
         'menu_item_id',
+        'menu_item_variant_id', // NEW
         'ingredient_id',
         'quantity',
     ];
 
-    /**
-     * Relationship: Recipe belongs to a menu item
-     */
+    /** Recipe belongs to a menu item (include soft-deleted) */
     public function menuItem()
     {
-        return $this->belongsTo(MenuItem::class);
+        return $this->belongsTo(MenuItem::class)->withTrashed();
     }
 
-    /**
-     * Relationship: Recipe uses one ingredient
-     */
+    /** Optional: recipe belongs to a specific variant (include archived) */
+    public function variant()
+    {
+        return $this->belongsTo(MenuItemVariant::class, 'menu_item_variant_id')->withTrashed();
+    }
+
+    /** Recipe uses one ingredient */
     public function ingredient()
     {
         return $this->belongsTo(Ingredient::class);

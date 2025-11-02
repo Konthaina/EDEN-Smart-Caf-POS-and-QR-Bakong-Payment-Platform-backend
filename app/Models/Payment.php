@@ -13,10 +13,14 @@ class Payment extends Model
         'order_id',
         'method',
         'amount',
+        'tax_amount',
+        'exchange_rate',
+        'total_khr',
         'transaction_id',
         'status',
         'confirmed_at',
     ];
+
 
     protected $casts = [
         'confirmed_at' => 'datetime',

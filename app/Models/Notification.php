@@ -3,20 +3,25 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Notification extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'type',
         'title',
         'message',
-        'read'
+        'read',
+        'scheduled_at',
+        'recurring',
+        'recurring_type',
+        'recurring_value',
+        'next_run_at',
     ];
 
     protected $casts = [
-        'read' => 'boolean'
+        'read' => 'boolean',
+        'recurring' => 'boolean',
+        'scheduled_at' => 'datetime',
+        'next_run_at' => 'datetime',
     ];
 }
