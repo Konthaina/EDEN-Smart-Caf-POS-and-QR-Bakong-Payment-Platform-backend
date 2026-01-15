@@ -18,13 +18,13 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
         ]);
 
-        $adminRole = Role::where('name', 'Admin')->first();
+        $adminRole = Role::where('name', 'Super Admin')->first();
 
         if ($adminRole) {
             User::firstOrCreate(
-                ['email' => env('ADMIN_EMAIL', 'admin@example.com')],
+                ['email' => env('ADMIN_EMAIL', 'superadmin@example.com')],
                 [
-                    'name' => env('ADMIN_NAME', 'Admin'),
+                    'name' => env('ADMIN_NAME', 'Super Admin'),
                     'password' => env('ADMIN_PASSWORD', 'password'),
                     'role_id' => $adminRole->id,
                 ]
