@@ -69,8 +69,18 @@ class ReportController extends Controller
             ->get();
 
         $months = collect([
-            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+            'Oct',
+            'Nov',
+            'Dec'
         ]);
 
         $data = $months->map(function ($month) use ($revenues) {
@@ -88,10 +98,11 @@ class ReportController extends Controller
     public function revenueByFilter(Request $request)
     {
         $filter = $request->query('filter', 'month');
+
         switch ($filter) {
             case 'today':
-                $raw = Order::whereDate('created_at', now())
-                    ->selectRaw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '+07:00'), '%H:00') as label, SUM(total_amount) as revenue")
+                $raw = Order::whereDate('created_at', now()->toDateString())
+                    ->selectRaw("DATE_FORMAT(created_at, '%H:00') as label, SUM(total_amount) as revenue")
                     ->groupBy('label')
                     ->get()
                     ->keyBy('label');
@@ -100,14 +111,17 @@ class ReportController extends Controller
                     $label = str_pad($hour, 2, '0', STR_PAD_LEFT) . ':00';
                     return [
                         'label' => $label,
-                        'revenue' => $raw[$label]->revenue ?? 0,
+                        'revenue' => (float) ($raw[$label]->revenue ?? 0),
                     ];
                 });
                 break;
 
             case 'week':
-                $raw = Order::where('created_at', '>=', now()->startOfWeek())
-                    ->selectRaw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '+07:00'), '%a') as label, SUM(total_amount) as revenue")
+                $raw = Order::whereBetween('created_at', [
+                    now()->startOfWeek()->startOfDay(),
+                    now()->endOfWeek()->endOfDay(),
+                ])
+                    ->selectRaw("DATE_FORMAT(created_at, '%a') as label, SUM(total_amount) as revenue")
                     ->groupBy('label')
                     ->get();
 
@@ -116,14 +130,17 @@ class ReportController extends Controller
                     $match = $raw->firstWhere('label', $day);
                     return [
                         'label' => $day,
-                        'revenue' => $match ? (float) $match->revenue : 0,
+                        'revenue' => (float) ($match->revenue ?? 0),
                     ];
                 });
                 break;
 
             case 'month':
-                $raw = Order::whereMonth('created_at', now()->month)
-                    ->selectRaw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '+07:00'), '%d') as label, SUM(total_amount) as revenue")
+                $raw = Order::whereBetween('created_at', [
+                    now()->startOfMonth()->startOfDay(),
+                    now()->endOfMonth()->endOfDay(),
+                ])
+                    ->selectRaw("DATE_FORMAT(created_at, '%d') as label, SUM(total_amount) as revenue")
                     ->groupBy('label')
                     ->get();
 
@@ -133,27 +150,26 @@ class ReportController extends Controller
                     $match = $raw->firstWhere('label', $label);
                     return [
                         'label' => $label,
-                        'revenue' => $match ? (float) $match->revenue : 0,
+                        'revenue' => (float) ($match->revenue ?? 0),
                     ];
                 });
                 break;
 
             case 'year':
-                $raw = Order::whereYear('created_at', now()->year)
-                    ->selectRaw("DATE_FORMAT(CONVERT_TZ(created_at,'+00:00','+07:00'), '%b') as label, SUM(total_amount) as revenue")
+                $raw = Order::whereBetween('created_at', [
+                    now()->startOfYear()->startOfDay(),
+                    now()->endOfYear()->endOfDay(),
+                ])
+                    ->selectRaw("DATE_FORMAT(created_at, '%b') as label, SUM(total_amount) as revenue")
                     ->groupBy('label')
                     ->get();
 
-                $months = collect([
-                    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-                ]);
-
+                $months = collect(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']);
                 $data = $months->map(function ($month) use ($raw) {
                     $match = $raw->firstWhere('label', $month);
                     return [
                         'label' => $month,
-                        'revenue' => $match ? (float) $match->revenue : 0,
+                        'revenue' => (float) ($match->revenue ?? 0),
                     ];
                 });
                 break;
@@ -202,5 +218,4 @@ class ReportController extends Controller
 
         return response()->json($topItems);
     }
-
 }
