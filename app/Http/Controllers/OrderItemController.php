@@ -19,7 +19,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\OrderExport;
 use Barryvdh\DomPDF\Facade\Pdf;
 
-class OrderController extends Controller
+class OrderItemController extends Controller
 {
     private const MAX_ORDERS_IN_WINDOW = 3;
     private const WINDOW_SECONDS       = 60;
@@ -51,11 +51,11 @@ class OrderController extends Controller
         $status = $request->query('status', 'all');
 
         $query = Order::with([
-                'user' => fn($w) => $w->withTrashed()->select('id', 'name', 'email', 'role_id', 'deleted_at'),
-                'discount',
-                'orderItems.menuItem',
-                'orderItems.menuItemVariant',
-            ])
+            'user' => fn($w) => $w->withTrashed()->select('id', 'name', 'email', 'role_id', 'deleted_at'),
+            'discount',
+            'orderItems.menuItem',
+            'orderItems.menuItemVariant',
+        ])
             ->leftJoin('users as u', 'u.id', '=', 'orders.user_id')
             ->leftJoin('discounts as d', 'd.id', '=', 'orders.discount_id')
             ->select('orders.*')
@@ -134,9 +134,9 @@ class OrderController extends Controller
         $format = $request->query('format', 'csv');
 
         $orders = Order::with([
-                'user' => fn($w) => $w->withTrashed()->select('id', 'name', 'email'),
-                'discount'
-            ])
+            'user' => fn($w) => $w->withTrashed()->select('id', 'name', 'email'),
+            'discount'
+        ])
             ->when($from, fn($q) => $q->whereDate('created_at', '>=', $from))
             ->when($to,   fn($q) => $q->whereDate('created_at', '<=', $to))
             ->when($status && $status !== 'all', fn($q) => $q->where('status', $status))

@@ -30,6 +30,7 @@ use App\Http\Controllers\TableController;
 | Public routes
 |--------------------------------------------------------------------------
 */
+
 Route::post('/table-login', [TableLoginController::class, 'loginBySlug']);
 Route::get('/settings', [SettingsController::class, 'index']);
 
@@ -96,14 +97,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{order}/pay',     [OrderController::class, 'pay']);
         Route::post('/{order}/cancel',  [OrderController::class, 'cancel']);
         Route::post('/ai-reorder',      [OrderController::class, 'aiReorder']);
-        Route::post('/{order}/pay-cash',[OrderController::class, 'payCash']);
+        Route::post('/{order}/pay-cash', [OrderController::class, 'payCash']);
     });
 
     // Order items
     Route::prefix('order-items')->group(function () {
         Route::post('/',             [OrderItemController::class, 'store']);
         Route::put('/{orderItem}',   [OrderItemController::class, 'update']);
-        Route::delete('/{orderItem}',[OrderItemController::class, 'destroy']);
+        Route::delete('/{orderItem}', [OrderItemController::class, 'destroy']);
     });
 
     // Categories — read for all, write for staff
@@ -164,7 +165,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{notification}',   [NotificationController::class, 'destroy']);
         Route::put('/{notification}/read', [NotificationController::class, 'markAsRead']);
     });
-// Variants (SHALLOW for update/destroy; nested for index/store; custom nested restore)
+    // Variants (SHALLOW for update/destroy; nested for index/store; custom nested restore)
     Route::apiResource('menu-items.variants', MenuItemVariantController::class)->shallow();
     Route::post('menu-items/{menu_item}/variants/{variant}/restore', [MenuItemVariantController::class, 'restore']);
     /*
