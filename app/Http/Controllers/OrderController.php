@@ -51,11 +51,11 @@ class OrderController extends Controller
         $status = $request->query('status', 'all');
 
         $query = Order::with([
-                'user' => fn($w) => $w->withTrashed()->select('id', 'name', 'email', 'role_id', 'deleted_at'),
-                'discount',
-                'orderItems.menuItem',
-                'orderItems.menuItemVariant',
-            ])
+            'user' => fn($w) => $w->withTrashed()->select('id', 'name', 'email', 'role_id', 'deleted_at'),
+            'discount',
+            'orderItems.menuItem',
+            'orderItems.menuItemVariant',
+        ])
             ->leftJoin('users as u', 'u.id', '=', 'orders.user_id')
             ->leftJoin('discounts as d', 'd.id', '=', 'orders.discount_id')
             ->select('orders.*')
@@ -124,7 +124,7 @@ class OrderController extends Controller
     {
         $user = $request->user();
         $roleName = strtolower($user->role->name ?? $user->role ?? '');
-        if (!in_array($roleName, ['admin'])) {
+        if (!in_array($roleName, ['admin', 'super admin', 'super_admin'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -134,9 +134,9 @@ class OrderController extends Controller
         $format = $request->query('format', 'csv');
 
         $orders = Order::with([
-                'user' => fn($w) => $w->withTrashed()->select('id', 'name', 'email'),
-                'discount'
-            ])
+            'user' => fn($w) => $w->withTrashed()->select('id', 'name', 'email'),
+            'discount'
+        ])
             ->when($from, fn($q) => $q->whereDate('created_at', '>=', $from))
             ->when($to,   fn($q) => $q->whereDate('created_at', '<=', $to))
             ->when($status && $status !== 'all', fn($q) => $q->where('status', $status))
@@ -444,7 +444,7 @@ class OrderController extends Controller
 
         $data = $request->validate([
             'tendered_amount' => ['required', 'numeric', 'min:0'],
-            'currency'        => ['required', Rule::in(['USD','KHR'])],
+            'currency'        => ['required', Rule::in(['USD', 'KHR'])],
         ]);
 
         $rate    = max(1, (float) $order->exchange_rate); // 1 USD = X KHR
@@ -471,7 +471,8 @@ class OrderController extends Controller
         }
 
         if (($data['currency'] === 'USD' && $cashUsd + 1e-9 < $dueUsd) ||
-            ($data['currency'] === 'KHR' && $cashKhr < $dueKhr)) {
+            ($data['currency'] === 'KHR' && $cashKhr < $dueKhr)
+        ) {
             return response()->json(['message' => 'Insufficient cash provided.'], 422);
         }
 
@@ -487,7 +488,7 @@ class OrderController extends Controller
         ]);
 
         return $order->load([
-            'user' => fn($w) => $w->withTrashed()->select('id','name','email','role_id','deleted_at'),
+            'user' => fn($w) => $w->withTrashed()->select('id', 'name', 'email', 'role_id', 'deleted_at'),
             'discount',
             'orderItems.menuItem',
             'orderItems.menuItemVariant',
