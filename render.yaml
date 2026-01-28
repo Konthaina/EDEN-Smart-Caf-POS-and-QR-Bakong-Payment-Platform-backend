@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: eden-cafe-api
+    env: php
+    plan: free
+    phpVersion: 8.2
+    buildCommand: composer install && php artisan migrate --force
+    startCommand: vendor/bin/heroku-php-apache2 public/
+    routes:
+      - path: /*
+        methods: [GET, POST, PUT, DELETE, PATCH, OPTIONS]
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: LOG_CHANNEL
+        value: single

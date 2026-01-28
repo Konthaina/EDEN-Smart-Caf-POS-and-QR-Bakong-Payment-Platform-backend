@@ -21,3 +21,6 @@ yarn-error.log
 /.vscode
 /.zed
 /public/storage
+/.postman
+DEPLOYMENT.md
+/postman
