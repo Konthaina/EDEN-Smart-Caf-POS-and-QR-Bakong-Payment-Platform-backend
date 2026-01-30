@@ -1,0 +1,52 @@
+services:
+  - name: eden-smart-caf-pos-api
+    type: web
+    env: docker
+    region: oregon
+    plan: starter
+    autoDeploy: true
+    dockerfilePath: Dockerfile
+    startCommand: /usr/local/bin/render-entrypoint.sh apache2-foreground
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: LOG_CHANNEL
+        value: stack
+      - key: SESSION_DRIVER
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: FILESYSTEM_DISK
+        value: local
+      - key: BROADCAST_CONNECTION
+        value: log
+      - key: MIGRATE_ON_DEPLOY
+        value: "true"
+      - key: SEED_ON_DEPLOY
+        value: "true"
+
+  - name: eden-smart-caf-pos-queue
+    type: worker
+    env: docker
+    region: oregon
+    plan: starter
+    autoDeploy: true
+    dockerfilePath: Dockerfile
+    startCommand: /usr/local/bin/render-entrypoint.sh php artisan queue:work --sleep=3 --tries=3 --timeout=90
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: LOG_CHANNEL
+        value: stack
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: MIGRATE_ON_DEPLOY
+        value: "false"
+      - key: SEED_ON_DEPLOY
+        value: "false"
