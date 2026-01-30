@@ -50,7 +50,9 @@ RUN chmod +x /usr/local/bin/render-entrypoint.sh
 RUN sed -ri 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf \
     && sed -ri 's!/var/www/html!/var/www/html/public!g' /etc/apache2/apache2.conf /etc/apache2/conf-enabled/*.conf
 
-RUN chown -R www-data:www-data /var/www/html && chmod -R 775 storage bootstrap/cache
+RUN mkdir -p storage bootstrap/cache \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 775 storage bootstrap/cache
 
 ENTRYPOINT ["/usr/local/bin/render-entrypoint.sh"]
 CMD ["apache2-foreground"]
