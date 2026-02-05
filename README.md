@@ -59,3 +59,78 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+---
+
+## Project Setup (Docker)
+
+### Prerequisites
+
+- Docker Desktop (or Docker Engine + Compose)
+
+### Quick Start
+
+1. Create your environment file:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Build and start services:
+
+   ```bash
+   docker compose up --build
+   ```
+
+3. Generate an app key (only needed if `APP_KEY` is empty):
+
+   ```bash
+   docker compose exec app php artisan key:generate
+   ```
+
+4. Run migrations:
+
+   ```bash
+   docker compose exec app php artisan migrate
+   ```
+
+5. Open the app:
+
+   - Laravel API: `http://localhost:8000`
+
+### Services
+
+- `app` - PHP-FPM (Laravel)
+- `web` - Nginx
+- `db` - MySQL 8.0
+- `redis` - Redis 7
+- `queue` - Laravel queue worker
+
+### Configuration Notes
+
+- Database defaults (from `docker-compose.yml`):
+  - `DB_HOST=db`
+  - `DB_DATABASE=eden_pos`
+  - `DB_USERNAME=eden_pos`
+  - `DB_PASSWORD=eden_pos`
+- Redis defaults:
+  - `REDIS_HOST=redis`
+  - `REDIS_PORT=6379`
+- App URL (container): `APP_URL=http://localhost:8000`
+
+### Common Commands
+
+```bash
+docker compose exec app php artisan migrate
+docker compose exec app php artisan migrate:fresh --seed
+docker compose exec app php artisan storage:link
+docker compose exec app php artisan queue:work
+```
+
+### Logs
+
+```bash
+docker compose logs -f app
+docker compose logs -f web
+```
+

@@ -1,0 +1,16 @@
+.git
+.postman
+postman
+node_modules
+vendor
+storage/logs
+storage/framework/cache
+storage/framework/sessions
+storage/framework/views
+storage/framework/testing
+.env
+npm-debug.log
+yarn.lock
+public/build
+public/storage
+bootstrap/cache/*.php
