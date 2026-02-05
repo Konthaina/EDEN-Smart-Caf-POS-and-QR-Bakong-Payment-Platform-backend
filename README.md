@@ -70,31 +70,25 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 
 ### Quick Start
 
-1. Create your environment file:
-
-   ```bash
-   cp .env.example .env
-   ```
-
-2. Build and start services:
+1. Build and start services:
 
    ```bash
    docker compose up --build
    ```
 
-3. Generate an app key (only needed if `APP_KEY` is empty):
+2. Generate an app key (only needed if `APP_KEY` is empty in `docker-compose.yml`):
 
    ```bash
    docker compose exec app php artisan key:generate
    ```
 
-4. Run migrations:
+3. Run migrations:
 
    ```bash
    docker compose exec app php artisan migrate
    ```
 
-5. Open the app:
+4. Open the app:
 
    - Laravel API: `http://localhost:8000`
 
@@ -108,6 +102,7 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 
 ### Configuration Notes
 
+- Docker uses the environment variables defined in `docker-compose.yml` (no `.env` file required for containers).
 - Database defaults (from `docker-compose.yml`):
   - `DB_HOST=db`
   - `DB_DATABASE=eden_pos`
@@ -117,13 +112,13 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
   - `REDIS_HOST=redis`
   - `REDIS_PORT=6379`
 - App URL (container): `APP_URL=http://localhost:8000`
+- Uploads are shared between `app` and `web` using the `app_storage` named volume (no `storage:link` required for Docker).
 
 ### Common Commands
 
 ```bash
 docker compose exec app php artisan migrate
 docker compose exec app php artisan migrate:fresh --seed
-docker compose exec app php artisan storage:link
 docker compose exec app php artisan queue:work
 docker compose restart app
 docker compose exec app php artisan optimize:clear
