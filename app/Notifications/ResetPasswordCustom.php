@@ -60,7 +60,9 @@ class ResetPasswordCustom extends Notification
     public function toMail($notifiable)
     {
         $url     = $this->buildResetUrl($notifiable);
-        $appName = config('app.name');
+        $appName = function_exists('get_setting')
+            ? (get_setting('shop_name', null) ?: config('app.name'))
+            : config('app.name');
 
         if ($this->context === 'register') {
             // Registration flow: different subject + blade view

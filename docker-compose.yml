@@ -29,9 +29,11 @@ x-app-base: &app-base
 services:
   app:
     <<: *app-base
+    restart: unless-stopped
 
   web:
     image: nginx:1.25-alpine
+    restart: unless-stopped
     ports:
       - "8000:80"
     volumes:
@@ -42,6 +44,7 @@ services:
 
   db:
     image: mysql:8.0
+    restart: unless-stopped
     environment:
       MYSQL_DATABASE: eden_pos
       MYSQL_USER: eden_pos
@@ -54,6 +57,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
@@ -61,6 +65,7 @@ services:
 
   queue:
     <<: *app-base
+    restart: unless-stopped
     command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=90"]
     depends_on:
       - app

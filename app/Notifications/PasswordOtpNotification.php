@@ -23,7 +23,9 @@ class PasswordOtpNotification extends Notification
 
     public function toMail($notifiable)
     {
-        $appName = config('app.name');
+        $appName = function_exists('get_setting')
+            ? (get_setting('shop_name', null) ?: config('app.name'))
+            : config('app.name');
 
         $subject = $this->context === 'register'
             ? __('🎉 :app — Set your password (OTP)', ['app' => $appName])

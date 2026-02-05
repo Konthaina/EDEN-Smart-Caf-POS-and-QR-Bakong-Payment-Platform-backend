@@ -125,6 +125,12 @@ docker compose exec app php artisan migrate
 docker compose exec app php artisan migrate:fresh --seed
 docker compose exec app php artisan storage:link
 docker compose exec app php artisan queue:work
+docker compose restart app
+docker compose exec app php artisan optimize:clear
+docker compose exec app php artisan cache:clear
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan route:clear
+docker compose exec app php artisan view:clear
 ```
 
 ### Logs
