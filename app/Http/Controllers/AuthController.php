@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\User;
@@ -35,8 +36,15 @@ class AuthController extends Controller
 
         $email = strtolower($request->email);
 
-        // If already registered, stop here
-        if (User::where('email', $email)->exists()) {
+        // If already registered (including soft-deleted), stop here
+        $existing = User::withTrashed()->where('email', $email)->first();
+        if ($existing) {
+            if ($existing->trashed()) {
+                return response()->json([
+                    'message' => 'This email belongs to a deleted account. Please contact support or use another email.',
+                ], 422);
+            }
+
             return response()->json(['message' => 'Email is already registered'], 422);
         }
 
@@ -226,7 +234,9 @@ class AuthController extends Controller
             'email'    => 'required|email',
             'code'     => 'required|digits:6',
             'password' => [
-                'required', 'string', 'confirmed',
+                'required',
+                'string',
+                'confirmed',
                 PasswordRule::min(8)->letters()->numbers()->symbols(),
                 'regex:/[A-Z]/',
             ],
@@ -295,10 +305,17 @@ class AuthController extends Controller
             return $invalid();
         }
 
-        // Re-check uniqueness right before create (race-safe)
-        if (User::where('email', $email)->exists()) {
+        // Re-check uniqueness right before create (race-safe, include soft-deletes)
+        $existing = User::withTrashed()->where('email', $email)->first();
+        if ($existing) {
             // Someone created this user meanwhile; treat as conflict
             DB::table('registration_otps')->where('id', $pending->id)->delete();
+            if ($existing->trashed()) {
+                return response()->json([
+                    'message' => 'This email belongs to a deleted account. Please contact support or use another email.',
+                ], 422);
+            }
+
             return response()->json(['message' => 'This email is already registered.'], 422);
         }
 

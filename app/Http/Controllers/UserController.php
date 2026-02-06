@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -25,15 +26,26 @@ class UserController extends Controller
     // ➕ Create a new user (by admin)
     public function store(Request $request)
     {
-        $auth = auth()->user();
+        /** @var User $auth */
+        $auth = Auth::user();
+
+        $emailInput = $request->input('email');
+        if (is_string($emailInput)) {
+            $email = strtolower($emailInput);
+            $trashed = User::onlyTrashed()->where('email', $email)->first();
+            if ($trashed) {
+                return response()->json([
+                    'message' => 'This email belongs to a deleted account. Please restore it or use another email.'
+                ], 422);
+            }
+        }
 
         $data = $request->validate([
             'name'     => 'required|string|max:255',
             'email'    => [
                 'required',
                 'email',
-                // important: allow reusing emails of soft-deleted rows
-                Rule::unique('users', 'email')->whereNull('deleted_at'),
+                Rule::unique('users', 'email'),
             ],
             'password' => ['required', Password::min(8)],
             'role_id'  => 'required|exists:roles,id',
@@ -56,7 +68,19 @@ class UserController extends Controller
     // ✏️ Update user details (no password here)
     public function update(Request $request, User $user)
     {
-        $auth = auth()->user();
+        /** @var User $auth */
+        $auth = Auth::user();
+
+        $emailInput = $request->input('email');
+        if (is_string($emailInput)) {
+            $email = strtolower($emailInput);
+            $trashed = User::onlyTrashed()->where('email', $email)->first();
+            if ($trashed && $trashed->id !== $user->id) {
+                return response()->json([
+                    'message' => 'This email belongs to a deleted account. Please restore it or use another email.'
+                ], 422);
+            }
+        }
 
         // Cannot edit user with same role as yourself
         if ((int)$auth->role_id === (int)$user->role_id) {
@@ -77,10 +101,9 @@ class UserController extends Controller
             'email'   => [
                 'nullable',
                 'email',
-                // still ignore this user's current email, but enforce "active-only" uniqueness
-                Rule::unique('users','email')
-                    ->ignore($user->id)
-                    ->whereNull('deleted_at'),
+                // ignore this user's current email, but enforce uniqueness across all users
+                Rule::unique('users', 'email')
+                    ->ignore($user->id),
             ],
             'role_id' => 'nullable|exists:roles,id',
         ]);
@@ -101,16 +124,27 @@ class UserController extends Controller
     // ✅ Update authenticated user's name & email (no password here)
     public function updateMe(Request $request)
     {
-        $user = auth()->user();
+        /** @var User $user */
+        $user = Auth::user();
+
+        $emailInput = $request->input('email');
+        if (is_string($emailInput)) {
+            $email = strtolower($emailInput);
+            $trashed = User::onlyTrashed()->where('email', $email)->first();
+            if ($trashed && $trashed->id !== $user->id) {
+                return response()->json([
+                    'message' => 'This email belongs to a deleted account. Please restore it or use another email.'
+                ], 422);
+            }
+        }
 
         $request->validate([
             'name'  => 'required|string|max:255',
             'email' => [
                 'required',
                 'email',
-                Rule::unique('users','email')
-                    ->ignore($user->id)
-                    ->whereNull('deleted_at'),
+                Rule::unique('users', 'email')
+                    ->ignore($user->id),
             ],
         ]);
 
@@ -125,7 +159,8 @@ class UserController extends Controller
     // 🔒 Update authenticated user's password
     public function updateMyPassword(Request $request)
     {
-        $user = auth()->user();
+        /** @var User $user */
+        $user = Auth::user();
 
         $request->validate([
             'current_password' => ['required'],
@@ -149,7 +184,8 @@ class UserController extends Controller
     // 🛠 Admin resets another user's password (role checks apply)
     public function resetPassword(Request $request, User $user)
     {
-        $auth = auth()->user();
+        /** @var User $auth */
+        $auth = Auth::user();
 
         if ((int)$auth->role_id === (int)$user->role_id || (int)$user->role_id < (int)$auth->role_id) {
             return response()->json([
@@ -174,7 +210,8 @@ class UserController extends Controller
     // ❌ Soft delete user (with checks)
     public function destroy(User $user)
     {
-        $auth = auth()->user();
+        /** @var User $auth */
+        $auth = Auth::user();
 
         // 1) Cannot delete yourself
         if ($auth->id === $user->id) {
@@ -198,7 +235,8 @@ class UserController extends Controller
     // ♻️ Restore a soft-deleted user
     public function restore($id)
     {
-        $auth = auth()->user();
+        /** @var User $auth */
+        $auth = Auth::user();
         $user = User::withTrashed()->findOrFail($id);
 
         // role checks similar to update/destroy
@@ -221,7 +259,8 @@ class UserController extends Controller
     // 💣 Permanently delete (force delete) — for already soft-deleted users
     public function forceDestroy($id)
     {
-        $auth = auth()->user();
+        /** @var User $auth */
+        $auth = Auth::user();
         $user = User::withTrashed()->findOrFail($id);
 
         // Protect: not yourself; same checks as destroy
