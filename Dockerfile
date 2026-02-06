@@ -40,6 +40,7 @@ RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoload
 COPY . .
 
 RUN rm -f bootstrap/cache/*.php \
+    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/framework/testing storage/logs \
     && chown -R www-data:www-data storage bootstrap/cache
 
 USER www-data
