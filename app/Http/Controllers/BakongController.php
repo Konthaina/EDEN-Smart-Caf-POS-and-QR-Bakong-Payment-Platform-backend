@@ -6,8 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use GuzzleHttp\Client;
-use Piseth\BakongKhqr\BakongKHQR;
-use Piseth\BakongKhqr\Models\MerchantInfo;
+use Konthaina\Khqr\KHQRGenerator;
 use App\Models\BakongTransaction;
 use App\Models\Setting;
 
@@ -70,49 +69,43 @@ class BakongController extends Controller
                 ], 422);
             }
 
-            $token = $this->fixedToken();
-            if (!$token) {
+            if (!$this->fixedToken()) {
                 return response()->json([
                     'message' => 'Bakong token is not configured.',
                 ], 422);
             }
 
-            $qrService = new BakongKHQR($token);
-
             $currencyInput = strtoupper($request->input('currency', 'KHR'));
-            $currencyCode  = $currencyInput === 'USD' ? 840 : 116;
 
             $billNumber = uniqid('txn_');
             $shopName   = $this->shopName();
 
-            // BIC example kept; make configurable if needed (CADIKHPP is CADI bank)
-            $bic = config('bakong.bank_bic', 'CADIKHPP');
+            // BIC example kept; make configurable if needed (CADIKHPP is CADI bank) -- It's only for MERCHANT_TYPE_MERCHANT, not needed for MERCHANT_TYPE_INDIVIDUAL
+            // $bic = config('bakong.bank_bic', 'CADIKHPP');
 
-            // Merchant Info (accountId used twice as in your original)
-            $info = new MerchantInfo(
-                $merchantId,   // merchant account id
-                $shopName,     // merchant name
-                'Phnom Penh',  // city (optional/static)
-                $merchantId,   // acquiring bank merchant id (as you had)
-                $bic           // bank BIC
-            );
-            $info->amount        = (float) $request->amount;
-            $info->currency      = $currencyCode;
-            $info->terminalLabel = config('bakong.terminal_label', 'POS-01');
-            $info->storeLabel    = $shopName;
-            $info->billNumber    = $billNumber;
+            $khqr = new KHQRGenerator(KHQRGenerator::MERCHANT_TYPE_INDIVIDUAL);
+            $khqr->setBakongAccountId($merchantId);
+            // $khqr->setMerchantId($merchantId);
+            $khqr->setMerchantName($shopName);
+            // $khqr->setAcquiringBank($bic);
+            $khqr->setCurrency($currencyInput);
+            $khqr->setAmount((float) $request->amount);
+            $khqr->setMerchantCity('Phnom Penh');
+            $khqr->setBillNumber($billNumber);
+            $khqr->setStoreLabel($shopName);
+            $khqr->setTerminalLabel(config('bakong.terminal_label', 'POS-01'));
 
-            $response = $qrService->generateMerchant($info);
+            $result = $khqr->generate();
 
-            if (!isset($response->data['qr'])) {
+            if (empty($result['qr'])) {
                 return response()->json([
                     'message'       => 'QR Generation Failed',
-                    'bakong_status' => $response->status ?? null,
+                    'error'         => $result,
                 ], 500);
             }
 
-            $qrString = $response->data['qr'];
-            $md5Hash  = md5($qrString);
+            $qrString = $result['qr'];
+            $md5Hash  = $result['md5'] ?? md5($qrString);
 
             BakongTransaction::create([
                 'bill_number' => $billNumber,
@@ -155,9 +148,9 @@ class BakongController extends Controller
             }
 
             try {
-                $res = $client->post($this->baseUrl().'/v1/check_transaction_by_md5', [
+                $res = $client->post($this->baseUrl() . '/v1/check_transaction_by_md5', [
                     'headers' => [
-                        'Authorization' => 'Bearer '.$token,
+                        'Authorization' => 'Bearer ' . $token,
                         'Accept'        => 'application/json',
                         'Content-Type'  => 'application/json',
                     ],
@@ -187,12 +180,12 @@ class BakongController extends Controller
                     // Alert telegram
                     $this->sendTelegramAlert(
                         "<b>{$this->shopName()} Payment Success</b>\n"
-                        . "Bill No: <code>{$tx->bill_number}</code>\n"
-                        . "Amount: <b>{$tx->amount} {$tx->currency}</b>\n"
-                        . "From: <code>{$tx->send_from}</code>\n"
-                        . "To: <code>{$tx->receive_to}</code>\n"
-                        . "MD5: <code>{$tx->md5_hash}</code>\n"
-                        . "Date & Time: " . now()->format('d M Y g:i A')
+                            . "Bill No: <code>{$tx->bill_number}</code>\n"
+                            . "Amount: <b>{$tx->amount} {$tx->currency}</b>\n"
+                            . "From: <code>{$tx->send_from}</code>\n"
+                            . "To: <code>{$tx->receive_to}</code>\n"
+                            . "MD5: <code>{$tx->md5_hash}</code>\n"
+                            . "Date & Time: " . now()->format('d M Y g:i A')
                     );
                 }
 
@@ -221,9 +214,9 @@ class BakongController extends Controller
             $token  = $this->fixedToken();
             $client = new Client();
 
-            $response = $client->get($this->baseUrl()."/v1/transactions/status/{$billNumber}", [
+            $response = $client->get($this->baseUrl() . "/v1/transactions/status/{$billNumber}", [
                 'headers' => [
-                    'Authorization' => 'Bearer '.$token,
+                    'Authorization' => 'Bearer ' . $token,
                     'Accept'        => 'application/json',
                 ],
             ]);
@@ -298,9 +291,9 @@ class BakongController extends Controller
 
             foreach ($pending as $tx) {
                 try {
-                    $res  = $client->get($this->baseUrl()."/v1/transactions/status/{$tx->bill_number}", [
+                    $res  = $client->get($this->baseUrl() . "/v1/transactions/status/{$tx->bill_number}", [
                         'headers' => [
-                            'Authorization' => 'Bearer '.$token,
+                            'Authorization' => 'Bearer ' . $token,
                             'Accept'        => 'application/json',
                         ],
                     ]);

@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.5
-FROM php:8.2-fpm
+FROM php:8.4-fpm
 
 ENV COMPOSER_ALLOW_SUPERUSER=1 \
     COMPOSER_HOME=/composer
